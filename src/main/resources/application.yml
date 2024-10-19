@@ -1,4 +1,7 @@
 spring:
   application:
     name: humuson-test
-
+  data:
+    redis:
+      host: localhost
+      port: 6379
