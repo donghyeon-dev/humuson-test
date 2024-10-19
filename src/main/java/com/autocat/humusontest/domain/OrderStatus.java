@@ -1,5 +1,10 @@
 package com.autocat.humusontest.domain;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@AllArgsConstructor
+@Getter
 public enum OrderStatus {
 
     PENDING, // 처리중

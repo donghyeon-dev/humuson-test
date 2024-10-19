@@ -19,8 +19,8 @@ public class OrderController {
      * @return Order
      */
     @PostMapping("/order")
-    Order fetchOrderData(@RequestBody String orderId) {
-        return orderService.fetchOrderData(orderId);
+    Order fetchOrderData(@RequestBody Order order) {
+        return orderService.fetchOrderData(order);
     }
 
     /**

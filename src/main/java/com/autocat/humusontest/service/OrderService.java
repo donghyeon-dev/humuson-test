@@ -2,13 +2,15 @@ package com.autocat.humusontest.service;
 
 import com.autocat.humusontest.domain.Order;
 import com.autocat.humusontest.feign.ExternalOrderClient;
-import com.autocat.humusontest.util.RedisUtil;
+import com.autocat.humusontest.repository.OrderRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.security.InvalidParameterException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,16 +21,21 @@ import java.util.Optional;
 public class OrderService {
 
     private final ExternalOrderClient externalOrderClient;
-    private final RedisUtil redisUtil;
+    private final OrderRedisRepository orderRedisRepository;
 
-    public Order fetchOrderData(String orderId) {
+    public Order fetchOrderData(Order order) {
+        if(Objects.isNull(order)){
+            log.error("Invalid order {}", order);
+            throw new InvalidParameterException("Invalid order");
+        }
+        String orderId = order.getOrderId();
         if(!StringUtils.hasText(orderId)){
             log.error("Invalid orderId {}", orderId);
             throw new InvalidParameterException("Invalid order id");
         }
 
-        Order order = externalOrderClient.fetchOrderData(orderId);
-        redisUtil.storeOrder(orderId, order);
+        order = externalOrderClient.fetchOrderData(orderId);
+        orderRedisRepository.save(order);
 
         return order;
     }
@@ -39,7 +46,7 @@ public class OrderService {
             throw new InvalidParameterException("Invalid order id");
         }
 
-        Optional<Order> optionalOrder = Optional.ofNullable(redisUtil.getOrder(orderId));
+        Optional<Order> optionalOrder = orderRedisRepository.findById(orderId);
         if(optionalOrder.isPresent()){
             return optionalOrder.get();
         } else {
@@ -49,18 +56,19 @@ public class OrderService {
     }
 
     public List<Order> getAllOrders() {
-        if(Objects.isNull(redisUtil.getAllOrders())){
+        List<Order> orders = new ArrayList<>();
+        Iterable<Order> ordersInRedis=  orderRedisRepository.findAll();
+
+        if(ObjectUtils.isEmpty(ordersInRedis)){
             log.error("No orders found");
             throw new InvalidParameterException("No orders found");
+        };
+        for(Order order: ordersInRedis){
+            if(!ObjectUtils.isEmpty(order)){
+                orders.add(order);
+            }
         }
 
-        Optional<List<Order>> optionalOrders = Optional.ofNullable(redisUtil.getAllOrders());
-        if(optionalOrders.isPresent()){
-            return optionalOrders.get();
-        } else {
-            log.error("No orders found");
-            throw new InvalidParameterException("No orders found");
-        }
-
+        return orders;
     }
 }
